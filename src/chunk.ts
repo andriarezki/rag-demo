@@ -3,6 +3,8 @@ export interface Chunk {
   heading: string;
   text: string;
   position: number;
+  /** Page number for PDFs (1-based); undefined for markdown and text files. */
+  page?: number;
 }
 
 const SENTENCE_SPLIT = /(?<=[.!?])\s+/;
@@ -60,6 +62,22 @@ export function chunkMarkdown(doc: string, markdown: string, max = 700, overlap 
       cur = cur ? `${cur} ${p}` : tail ? `…${tail} ${p}` : p;
     }
     flush();
+  }
+  return chunks;
+}
+
+/**
+ * Chunk the text of one PDF page. PDFs have no reliable headings, so the page number is the label.
+ * Text is cut at sentence boundaries into pieces of at most `max` characters, with a small overlap.
+ */
+export function chunkPage(doc: string, page: number, text: string, max = 700, overlap = 120): Chunk[] {
+  const sentences = splitLong(text.replace(/\s+/g, ' ').trim(), max);
+  const chunks: Chunk[] = [];
+  let tail = '';
+  for (const s of sentences) {
+    if (!s) continue;
+    chunks.push({ doc, heading: `halaman ${page}`, text: tail ? `…${tail} ${s}` : s, position: 0, page });
+    tail = s.slice(-overlap);
   }
   return chunks;
 }

@@ -1,0 +1,66 @@
+ASISTEN DOKUMEN (PILOT) - cara pakai
+=====================================
+
+Apa ini
+-------
+Halaman web kecil untuk bertanya tentang isi dokumen (PDF, TXT, MD). Jawaban disertai sumbernya
+(nama berkas dan nomor halaman). Jika jawabannya tidak ada di dokumen, aplikasi bilang tidak ada.
+Tidak perlu instal apa pun: semuanya ada di folder ini (termasuk Node.js di folder "node").
+
+Yang dibutuhkan
+---------------
+- Satu PC Windows 10/11 atau Windows Server 2016+ (64-bit) di jaringan LAN, RAM minimal 8 GB (16 GB lebih baik).
+- Folder dokumen yang disetujui (tidak rahasia). Aplikasi hanya MEMBACA folder ini.
+- Tidak butuh internet, KECUALI Anda mengisi GEMINI_API_KEY (lihat bagian "Mode offline dan mode AI").
+
+Langkah pertama (5 menit)
+-------------------------
+1. Salin seluruh folder ini ke PC, misalnya D:\Asisten-Dokumen.
+2. Buka config.env dengan Notepad:
+   - Ganti APP_PASSWORD dengan password Anda sendiri (aplikasi menolak jalan jika masih contoh).
+   - Ganti DOCS_DIR dengan folder dokumen pilot, misalnya D:\Dokumen-Pilot.
+   Simpan.
+3. Klik dua kali ingest.bat. Tunggu sampai muncul "Indexed ... chunks from ... documents".
+4. Klik dua kali start.bat. Biarkan jendelanya terbuka.
+5. Buka http://localhost:3000 di PC itu. Dari PC lain di LAN: http://ALAMAT-IP-PC:3000
+   (lihat alamat IP dengan perintah ipconfig). Login dengan APP_USER dan APP_PASSWORD.
+   Jika Windows menampilkan pertanyaan Firewall, izinkan untuk jaringan Private/Domain.
+
+Menambah atau mengganti dokumen
+-------------------------------
+Taruh berkas di DOCS_DIR, jalankan ingest.bat, lalu tutup dan jalankan ulang start.bat.
+Setiap ingest membangun ulang indeks dari nol, jadi berkas yang dihapus ikut hilang dari indeks.
+
+Mode offline dan mode AI
+------------------------
+- Offline (GEMINI_API_KEY kosong): pencarian hanya mencocokkan kata (kata kunci + hash kata). Jawaban berupa
+  potongan dokumen yang paling relevan, bukan jawaban yang ditulis. Kualitasnya terbatas: istilah yang
+  berbeda untuk hal yang sama bisa terlewat. Tidak ada data yang keluar dari PC.
+- Mode AI (GEMINI_API_KEY diisi): pencarian makna lebih baik dan jawaban ditulis ringkas dengan kutipan [1] [2].
+  KONSEKUENSI: potongan dokumen yang relevan dikirim ke layanan Google setiap ada pertanyaan, dan PC
+  butuh akses internet. Gunakan hanya untuk dokumen tidak rahasia dan setelah ada izin atasan dan IT pusat.
+  Setelah mengisi atau mengganti key, jalankan ingest.bat lagi (indeks dibuat dengan pencarian yang berbeda).
+
+Batasan yang perlu diketahui
+----------------------------
+- PDF hasil scan (gambar) tidak punya teks dan akan dilewati. Ingest menampilkan daftarnya. Perlu OCR dulu.
+- Tabel dan rumus di PDF bisa terbaca berantakan.
+- Aplikasi tidak menggantikan membaca sumbernya. Selalu cek halaman yang dikutip.
+- Jawaban salah atau terlewat mungkin terjadi. Catat contohnya untuk evaluasi pilot.
+
+Catatan dan keamanan
+--------------------
+- Semua pertanyaan dicatat di data\questions.log (waktu, IP, pertanyaan, hasil, sumber) untuk evaluasi pilot.
+  Kosongkan LOG_QUESTIONS di config.env jika tidak ingin mencatat, dan beri tahu pengguna.
+- Hanya buka port ini di LAN. Jangan diteruskan ke internet.
+- Daftarkan sistem ke IT HO (lokasi PC, pemilik, data yang dipakai, siapa yang boleh akses) sebelum dipakai.
+- Untuk berhenti: tutup jendela start.bat.
+
+Masalah umum
+------------
+- "Login diperlukan" terus muncul: cek APP_USER/APP_PASSWORD di config.env, jalankan ulang start.bat.
+- Halaman tidak terbuka dari PC lain: cek Firewall Windows dan pastikan PC satu jaringan.
+- "No readable ... text found": folder kosong atau semua PDF berupa scan.
+- Kesalahan lain: foto layar jendela hitamnya dan kirim.
+
+Dibuat dari proyek terbuka github.com/andriarezki/rag-demo (lisensi MIT). Paket ini belum diuji di Windows sungguhan.

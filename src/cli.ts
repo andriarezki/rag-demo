@@ -20,12 +20,14 @@ async function main() {
     const dir = rest[0] ?? rt.docsDir;
     const r = await ingest(dir, rt.store, rt.embedder);
     console.log(`Indexed ${r.chunks} chunks from ${r.docs} documents in ${dir} (embedder: ${rt.embedder.name})`);
+    for (const f of r.empty) console.log(`  no text, skipped (scanned PDF? needs OCR): ${f}`);
+    for (const f of r.failed) console.log(`  could not read: ${f.file} (${f.error})`);
   } else if (cmd === 'ask') {
     const question = rest.join(' ').trim();
     if (!question) throw new Error('Usage: npm run ask -- "your question"');
     const a = await ask(question, rt.store, rt.embedder, rt.llm, { k: rt.topK, minScore: rt.minScore, mode: rt.mode });
     console.log(`\n${a.answer}\n`);
-    for (const s of a.sources) console.log(`  [${s.n}] ${s.doc} > ${s.heading}  (score ${s.score}, found by ${s.via})`);
+    for (const s of a.sources) console.log(`  [${s.n}] ${s.doc}${s.page ? ` p.${s.page}` : ` > ${s.heading}`}  (score ${s.score}, found by ${s.via})`);
     console.log(`\nmode: ${a.mode} | search: ${rt.mode} | embedder: ${rt.embedder.name} | answer model: ${rt.llm?.name ?? 'none'}`);
   } else if (cmd === 'eval') {
     const cases = JSON.parse(readFileSync(rest[0] ?? 'eval/questions.json', 'utf8')) as EvalCase[];
