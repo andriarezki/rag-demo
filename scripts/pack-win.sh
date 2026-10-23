@@ -27,7 +27,7 @@ cp package.json package-lock.json "$STAGE/"
 (cd "$STAGE" && npm ci --omit=dev --omit=optional --no-audit --no-fund --ignore-scripts && rm -f package-lock.json)
 
 # 3. Launchers and instructions (Windows line endings so Notepad and cmd are happy)
-for f in start.bat ingest.bat tanya.bat config.env BACA-SAYA.txt; do sed 's/$/\r/' "windows/$f" > "$STAGE/$f"; done
+for f in start.bat ingest.bat ask.bat config.env README.txt; do sed 's/$/\r/' "windows/$f" > "$STAGE/$f"; done
 cp LICENSE "$STAGE/LICENSE.txt"
 
 ( cd "$OUT" && rm -f "$NAME-$VERSION-Win64.zip" && python3 -m zipfile -c "$NAME-$VERSION-Win64.zip" $NAME )

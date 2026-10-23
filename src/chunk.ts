@@ -76,7 +76,7 @@ export function chunkPage(doc: string, page: number, text: string, max = 700, ov
   let tail = '';
   for (const s of sentences) {
     if (!s) continue;
-    chunks.push({ doc, heading: `halaman ${page}`, text: tail ? `…${tail} ${s}` : s, position: 0, page });
+    chunks.push({ doc, heading: `page ${page}`, text: tail ? `…${tail} ${s}` : s, position: 0, page });
     tail = s.slice(-overlap);
   }
   return chunks;

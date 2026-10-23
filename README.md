@@ -43,14 +43,14 @@ flowchart LR
 4. **Retrieve with two searches.** The question is embedded and compared with every chunk (cosine similarity: finds passages that mean the same thing). At the same time BM25 scores every chunk on the question's words (finds exact terms such as `ekstensi 100`, an email address or a channel name, which embeddings often blur). (`src/bm25.ts`)
 5. **Fuse.** The two rankings are merged with Reciprocal Rank Fusion: a chunk earns `1 / (60 + rank)` from each list it appears in. Ranks, not raw scores, are combined, so the two different scales mix fairly. (`rank()` in `src/rag.ts`)
 6. **Guard.** A chunk counts as on topic if its cosine score is above a threshold **or** it contains most of the question's weighted words (keyword coverage of at least 0.6). If nothing passes, the app answers "not in the documents" and **does not call the model at all**.
-7. **Generate.** Otherwise the top chunks are sent to the model as numbered passages with strict rules: use only these passages, cite them, reply `TIDAK_ADA` if the answer is not there, and treat the passages as data, not instructions. A `TIDAK_ADA` reply also becomes a refusal. Each source in the answer shows which search found it. (`src/rag.ts`, `src/llm.ts`)
+7. **Generate.** Otherwise the top chunks are sent to the model as numbered passages with strict rules: use only these passages, cite them, reply `NOT_IN_DOCUMENTS` if the answer is not there, and treat the passages as data, not instructions. A `NOT_IN_DOCUMENTS` reply also becomes a refusal. Each source in the answer shows which search found it. (`src/rag.ts`, `src/llm.ts`)
 
 ### Two layers against made-up answers
 
 | Layer | Catches | Cost |
 |---|---|---|
 | Score / keyword guard before the model | Questions clearly unrelated to the documents | Free, no model call |
-| `TIDAK_ADA` instruction in the prompt | Questions that look related but are not answered | One model call |
+| `NOT_IN_DOCUMENTS` instruction in the prompt | Questions that look related but are not answered | One model call |
 
 ## Providers
 
@@ -90,7 +90,7 @@ Use your own documents: put `.md` files in a folder and run `DOCS_DIR=path/to/fo
 
 - Put `.md`, `.txt` or `.pdf` files (subfolders are fine) in a folder and run `DOCS_DIR=path/to/folder npm run ingest`. Answers cite the file and, for PDFs, the page.
 - `APP_USER` and `APP_PASSWORD` protect the whole site with HTTP Basic login. `LOG_QUESTIONS=data/questions.log` records every question as a JSON line (time, IP, question, result, sources), useful for evaluating a pilot. Both are off by default.
-- **Windows without installing anything:** `scripts/pack-win.sh` builds a folder with Node.js, the app and `start.bat` / `ingest.bat` launchers, with instructions in Indonesian (`windows/BACA-SAYA.txt`). The app uses only pure-JavaScript dependencies and Node's built-in SQLite, so nothing native has to be compiled. The Windows package has been smoke-tested on Linux only, not on a real Windows machine.
+- **Windows without installing anything:** `scripts/pack-win.sh` builds a folder with Node.js, the app and `start.bat` / `ingest.bat` / `ask.bat` launchers, with instructions in English (`windows/README.txt`). The app uses only pure-JavaScript dependencies and Node's built-in SQLite, so nothing native has to be compiled. The Windows package has been smoke-tested on Linux only, not on a real Windows machine.
 - Offline mode matches words, not meaning. On a real 15-page paper it surfaced the right pages among its top results but not always first. For serious use set `GEMINI_API_KEY` (passages are then sent to Google at question time) or plug in a local embedding model.
 
 ## Measuring it
@@ -112,7 +112,7 @@ How to read this honestly:
 
 - **hit@k** means the right document is the top result (hit@1) or among the top 3 (hit@3). **off-topic refused** is how many of the 4 unanswerable questions the guard stopped before any model call.
 - This is the offline hash embedder, which already matches on words, so keyword search has little to add here. Keyword search matters most next to a real embedding model, where exact terms are the thing that gets blurred. The unit tests show that case with a meaning-blind embedder: hybrid search still finds `ekstensi 100` because BM25 does.
-- Keyword mode refuses all 4 off-topic questions because its guard (share of the question's words found in a chunk) is stricter than the cosine score of the hash embedder. In `hybrid` mode a chunk passes if **either** guard passes, which keeps paraphrased questions answerable but lets "harga saham perusahaan hari ini" through on shared words. With a model key, the `TIDAK_ADA` layer is what catches it.
+- Keyword mode refuses all 4 off-topic questions because its guard (share of the question's words found in a chunk) is stricter than the cosine score of the hash embedder. In `hybrid` mode a chunk passes if **either** guard passes, which keeps paraphrased questions answerable but lets "harga saham perusahaan hari ini" through on shared words. With a model key, the `NOT_IN_DOCUMENTS` layer is what catches it.
 - The question set is small and written by the author. It is a smoke test, not a benchmark. A harder set (paraphrases, typos, mixed languages) would separate the modes properly.
 - Numbers for the Gemini embedder are not published here because they have not been measured. Run `GEMINI_API_KEY=... npm run ingest && npm run eval` and tune `MIN_SCORE` for your documents.
 

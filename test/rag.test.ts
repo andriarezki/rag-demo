@@ -187,7 +187,7 @@ describe('PDF and text files', () => {
   it('chunks a page and labels it with the page number', () => {
     const chunks = chunkPage('a.pdf', 3, 'Kalimat pertama. '.repeat(100), 300, 50);
     expect(chunks.length).toBeGreaterThan(2);
-    expect(chunks.every((c) => c.page === 3 && c.heading === 'halaman 3')).toBe(true);
+    expect(chunks.every((c) => c.page === 3 && c.heading === 'page 3')).toBe(true);
   });
 
   it('indexes PDFs in subfolders and cites the right page', async () => {
@@ -238,9 +238,9 @@ describe('ask', () => {
     expect(user).toContain('Question: Berapa hari cuti');
   });
 
-  it('turns the model TIDAK_ADA reply into a refusal but keeps the sources for inspection', async () => {
+  it('turns the model NOT_IN_DOCUMENTS reply into a refusal but keeps the sources for inspection', async () => {
     const store = await indexed();
-    const a = await ask('Berapa hari cuti tahunan untuk karyawan tetap?', store, embedder, { name: 'fake', complete: async () => 'TIDAK_ADA' });
+    const a = await ask('Berapa hari cuti tahunan untuk karyawan tetap?', store, embedder, { name: 'fake', complete: async () => 'NOT_IN_DOCUMENTS' });
     expect(a.mode).toBe('refused');
     expect(a.answer).toBe(NOT_FOUND);
     expect(a.sources.length).toBeGreaterThan(0);
