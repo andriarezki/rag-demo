@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { readFileSync } from 'node:fs';
 import { chunkMarkdown } from '../src/chunk.js';
-import { geminiEmbedder, hashEmbedder, pickEmbedder } from '../src/embed.js';
+import { geminiEmbedder, hashEmbedder, pickEmbedder, type Embedder } from '../src/embed.js';
 import { claude, gemini, pickLlm, type Llm } from '../src/llm.js';
-import { ask, buildPrompt, ingest, NOT_FOUND, retrieve } from '../src/rag.js';
+import { ask, buildPrompt, ingest, NOT_FOUND, rank, relevance, retrieve } from '../src/rag.js';
+import { Bm25 } from '../src/bm25.js';
 import { VectorStore } from '../src/store.js';
 import { createApp } from '../src/app.js';
 
@@ -88,6 +89,80 @@ describe('retrieval over the sample documents', () => {
   });
 });
 
+describe('keyword search (BM25)', () => {
+  const docs = ['laptop hilang lapor ke ekstensi 100', 'cuti tahunan 12 hari', 'reimbursement dibayar hari Jumat'];
+
+  it('ranks the chunk that contains the rare exact words first', () => {
+    const s = new Bm25(docs).score('ekstensi 100');
+    expect(s[0]!.bm25).toBeGreaterThan(s[1]!.bm25);
+    expect(s[0]!.coverage).toBeCloseTo(1, 5);
+    expect(s[1]!.coverage).toBe(0);
+  });
+
+  it('gives zero coverage to a question made of words nobody uses', () => {
+    const s = new Bm25(docs).score('resep nasi goreng');
+    expect(s.every((x) => x.bm25 === 0 && x.coverage === 0)).toBe(true);
+  });
+
+  it('weights a rare word above a common one', () => {
+    const s = new Bm25(docs).score('hari ekstensi');
+    expect(s[0]!.coverage).toBeGreaterThan(s[2]!.coverage); // "ekstensi" is rarer than "hari"
+  });
+
+  it('handles an empty question and an empty corpus', () => {
+    expect(new Bm25(docs).score('').every((x) => x.bm25 === 0)).toBe(true);
+    expect(new Bm25([]).score('apa saja')).toEqual([]);
+  });
+});
+
+describe('hybrid search', () => {
+  /** Meaning-blind embedder: stable pseudo-random vectors, so only the keyword side can find the answer. */
+  const noise: Embedder = {
+    name: 'noise',
+    defaultMinScore: -1,
+    async embed(texts) {
+      return texts.map((t) => {
+        let h = 7;
+        for (const ch of t) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0;
+        return Array.from({ length: 16 }, (_, i) => Math.sin(h * (i + 1)));
+      });
+    },
+  };
+
+  it('keyword search rescues a question the embeddings cannot answer', async () => {
+    const store = new VectorStore(':memory:');
+    await ingest(DOCS, store, noise);
+    const hybrid = await retrieve('ekstensi 100', store, noise, 3, 'hybrid');
+    const keyword = await retrieve('ekstensi 100', store, noise, 3, 'keyword');
+    expect(hybrid[0]!.doc).toBe('03-laptop-dan-perangkat.md');
+    expect(keyword[0]!.doc).toBe('03-laptop-dan-perangkat.md');
+  });
+
+  it('fuses two rankings by rank, not by raw score', () => {
+    const h = (id: number, score: number, bm25: number) => ({ id, doc: 'd', heading: 'h', text: 't', score, bm25, coverage: 0 });
+    const hits = [h(1, 0.9, 0), h(2, 0.5, 9), h(3, 0.4, 1)];
+    expect(rank(hits, 'vector').map((x) => x.id)).toEqual([1, 2, 3]);
+    expect(rank(hits, 'keyword').map((x) => x.id)).toEqual([2, 3]);
+    expect(rank(hits, 'hybrid')[0]!.id).toBe(2); // first in keyword, second in meaning
+  });
+
+  it('applies the on-topic guard per mode', () => {
+    const hit = { id: 1, doc: 'd', heading: 'h', text: 't', score: 0.05, bm25: 2, coverage: 0.9 };
+    expect(relevance(hit, 'vector', 0.12)).toBeNull();
+    expect(relevance(hit, 'keyword', 0.12)).toBe('keyword');
+    expect(relevance(hit, 'hybrid', 0.12)).toBe('keyword');
+    expect(relevance({ ...hit, score: 0.5 }, 'hybrid', 0.12)).toBe('both');
+    expect(relevance({ ...hit, coverage: 0 }, 'hybrid', 0.12)).toBeNull();
+  });
+
+  it('reports which search found each source', async () => {
+    const store = await indexed();
+    const a = await ask('ekstensi 100', store, embedder, null);
+    expect(a.sources[0]!.doc).toBe('03-laptop-dan-perangkat.md');
+    expect(['keyword', 'both']).toContain(a.sources[0]!.via);
+  });
+});
+
 describe('ask', () => {
   it('returns the best passage when there is no model key', async () => {
     const store = await indexed();
@@ -118,7 +193,7 @@ describe('ask', () => {
   });
 
   it('labels passages and marks them as data in the prompt', () => {
-    const p = buildPrompt('q?', [{ n: 1, doc: 'a.md', heading: 'H', text: 'isi', score: 0.9 }]);
+    const p = buildPrompt('q?', [{ n: 1, doc: 'a.md', heading: 'H', text: 'isi', score: 0.9, via: 'meaning' }]);
     expect(p).toBe('Passages:\n\n[1] (a.md > H)\nisi\n\nQuestion: q?');
   });
 });
@@ -178,7 +253,7 @@ describe('HTTP API', () => {
 
   it('reports what is indexed', async () => {
     const res = await request(await app()).get('/api/info');
-    expect(res.body).toMatchObject({ documents: 7, embedder: 'hash-1024', answerModel: null });
+    expect(res.body).toMatchObject({ documents: 7, embedder: 'hash-1024', answerModel: null, search: 'hybrid' });
     expect(res.body.chunks).toBeGreaterThan(7);
   });
 
