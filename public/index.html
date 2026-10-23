@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Demo</title>
+<style>
+  :root { --bg: #f7f3ea; --ink: #1f2a44; --muted: #6b6455; --card: #fff; --line: #e6dfd0; --accent: #c77a12; --ok: #1e6b3c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #14171f; --ink: #e8e6e1; --muted: #9a9486; --card: #1d212c; --line: #2c3140; --accent: #e8a13d; --ok: #62c58a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .lede { color: var(--muted); margin: 0 0 20px; }
+  .info { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font: inherit; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { padding: 12px 18px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 24px; }
+  .chip { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 500; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-top: 16px; }
+  .answer { white-space: pre-wrap; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .badge.refused { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+  h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 22px 0 6px; }
+  .src { border-top: 1px solid var(--line); padding: 10px 0; font-size: 14px; }
+  .src:first-of-type { border-top: 0; }
+  .src b { color: var(--accent); }
+  .src .meta { color: var(--muted); font-size: 12px; }
+  .src p { margin: 4px 0 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tanya dokumen</h1>
+  <p class="lede">Jawaban diambil dari dokumen contoh (handbook perusahaan fiktif), lengkap dengan sumbernya.</p>
+  <div class="info" id="info">memuat…</div>
+  <form id="f">
+    <input id="q" maxlength="300" placeholder="Contoh: berapa lama harus lapor kalau laptop dicuri?" autocomplete="off" required>
+    <button id="go">Tanya</button>
+  </form>
+  <div class="chips" id="chips"></div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const examples = ['Berapa lama saya harus melapor kalau laptop dicuri?', 'Batas waktu mengajukan reimbursement berapa hari?', 'Bagaimana resep nasi goreng yang enak?'];
+$('chips').innerHTML = examples.map((e) => `<button type="button" class="chip">${esc(e)}</button>`).join('');
+$('chips').addEventListener('click', (e) => { if (e.target.classList.contains('chip')) { $('q').value = e.target.textContent; $('f').requestSubmit(); } });
+
+fetch('/api/info').then((r) => r.json()).then((i) => {
+  $('info').textContent = `${i.documents} dokumen · ${i.chunks} potongan · embedding: ${i.embedder} · jawaban: ${i.answerModel ?? 'tanpa model (hanya passage)'}`;
+});
+
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('go').disabled = true;
+  $('out').innerHTML = '<div class="card">Mencari…</div>';
+  try {
+    const res = await fetch('/api/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question: $('q').value }) });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Gagal');
+    const label = { llm: 'Jawaban dari model', extractive: 'Passage paling relevan', refused: 'Tidak ada di dokumen' }[d.mode];
+    $('out').innerHTML = `<div class="card"><span class="badge ${d.mode === 'refused' ? 'refused' : ''}">${label}</span><div class="answer">${esc(d.answer)}</div>` +
+      (d.sources.length ? `<h2>Sumber</h2>` + d.sources.map((s) => `<div class="src"><b>[${s.n}]</b> ${esc(s.doc)} › ${esc(s.heading)} <span class="meta">skor ${s.score}</span><p>${esc(s.text)}</p></div>`).join('') : '') + '</div>';
+  } catch (err) {
+    $('out').innerHTML = `<div class="card">${esc(err.message)}</div>`;
+  } finally {
+    $('go').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

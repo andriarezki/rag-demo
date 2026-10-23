@@ -1,0 +1,14 @@
+services:
+  rag:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Optional. Without keys the app runs offline and returns the best passages.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - rag-data:/data
+
+volumes:
+  rag-data:
