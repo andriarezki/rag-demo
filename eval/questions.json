@@ -1,18 +1,82 @@
 [
-  { "q": "Berapa lama saya harus melapor kalau laptop dicuri?", "doc": "03-laptop-dan-perangkat.md" },
-  { "q": "Seberapa sering password harus diganti?", "doc": "01-akun-dan-password.md" },
-  { "q": "Berapa hari cuti tahunan untuk karyawan tetap?", "doc": "04-cuti-dan-izin.md" },
-  { "q": "Batas waktu mengajukan reimbursement berapa hari?", "doc": "05-pengeluaran-dan-reimbursement.md" },
-  { "q": "Kapan server file dicadangkan dan disimpan berapa lama?", "doc": "06-keamanan-data.md" },
-  { "q": "VPN tidak bisa tersambung, apa yang harus saya cek?", "doc": "02-vpn-dan-wifi.md" },
-  { "q": "Berapa uang makan per hari saat perjalanan dinas?", "doc": "05-pengeluaran-dan-reimbursement.md" },
-  { "q": "Akun saya terkunci setelah salah password, berapa lama sampai terbuka?", "doc": "01-akun-dan-password.md" },
-  { "q": "Bagaimana prosedur kalau sakit lebih dari dua hari?", "doc": "04-cuti-dan-izin.md" },
-  { "q": "When can I work from home as a new employee?", "doc": "07-onboarding-en.md" },
-  { "q": "Apa yang harus dilakukan jika saya terlanjur mengklik tautan phishing?", "doc": "06-keamanan-data.md" },
-  { "q": "Apakah saya boleh memasang software sendiri di laptop kantor?", "doc": "03-laptop-dan-perangkat.md" },
-  { "q": "Siapa presiden Prancis saat ini?", "doc": null },
-  { "q": "Bagaimana resep nasi goreng yang enak?", "doc": null },
-  { "q": "Berapa harga saham perusahaan hari ini?", "doc": null },
-  { "q": "Kapan jadwal pertandingan Liga Champions?", "doc": null }
+  {
+    "q": "Berapa lama saya harus melapor kalau laptop dicuri?",
+    "doc": "03-laptop-dan-perangkat.md"
+  },
+  {
+    "q": "Seberapa sering password harus diganti?",
+    "doc": "01-akun-dan-password.md"
+  },
+  {
+    "q": "Berapa hari cuti tahunan untuk karyawan tetap?",
+    "doc": "04-cuti-dan-izin.md"
+  },
+  {
+    "q": "Batas waktu mengajukan reimbursement berapa hari?",
+    "doc": "05-pengeluaran-dan-reimbursement.md"
+  },
+  {
+    "q": "Kapan server file dicadangkan dan disimpan berapa lama?",
+    "doc": "06-keamanan-data.md"
+  },
+  {
+    "q": "VPN tidak bisa tersambung, apa yang harus saya cek?",
+    "doc": "02-vpn-dan-wifi.md"
+  },
+  {
+    "q": "Berapa uang makan per hari saat perjalanan dinas?",
+    "doc": "05-pengeluaran-dan-reimbursement.md"
+  },
+  {
+    "q": "Akun saya terkunci setelah salah password, berapa lama sampai terbuka?",
+    "doc": "01-akun-dan-password.md"
+  },
+  {
+    "q": "Bagaimana prosedur kalau sakit lebih dari dua hari?",
+    "doc": "04-cuti-dan-izin.md"
+  },
+  {
+    "q": "When can I work from home as a new employee?",
+    "doc": "07-onboarding-en.md"
+  },
+  {
+    "q": "Apa yang harus dilakukan jika saya terlanjur mengklik tautan phishing?",
+    "doc": "06-keamanan-data.md"
+  },
+  {
+    "q": "Apakah saya boleh memasang software sendiri di laptop kantor?",
+    "doc": "03-laptop-dan-perangkat.md"
+  },
+  {
+    "q": "ekstensi 100",
+    "doc": "03-laptop-dan-perangkat.md"
+  },
+  {
+    "q": "phishing@contoh.id",
+    "doc": "06-keamanan-data.md"
+  },
+  {
+    "q": "Contoh-Tamu",
+    "doc": "02-vpn-dan-wifi.md"
+  },
+  {
+    "q": "akun.contoh.id",
+    "doc": "01-akun-dan-password.md"
+  },
+  {
+    "q": "Siapa presiden Prancis saat ini?",
+    "doc": null
+  },
+  {
+    "q": "Bagaimana resep nasi goreng yang enak?",
+    "doc": null
+  },
+  {
+    "q": "Berapa harga saham perusahaan hari ini?",
+    "doc": null
+  },
+  {
+    "q": "Kapan jadwal pertandingan Liga Champions?",
+    "doc": null
+  }
 ]

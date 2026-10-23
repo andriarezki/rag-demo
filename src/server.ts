@@ -14,6 +14,6 @@ if (rt.store.count() === 0 || rt.store.embedderName !== rt.embedder.name) {
 }
 
 const port = Number(process.env.PORT) || 3000;
-createApp({ store: rt.store, embedder: rt.embedder, llm: rt.llm, topK: rt.topK, minScore: rt.minScore }).listen(port, () => {
-  console.log(`RAG demo on http://localhost:${port} | embedder: ${rt.embedder.name} | answers: ${rt.llm?.name ?? 'passages only (no API key)'}`);
+createApp({ store: rt.store, embedder: rt.embedder, llm: rt.llm, topK: rt.topK, minScore: rt.minScore, mode: rt.mode }).listen(port, () => {
+  console.log(`RAG demo on http://localhost:${port} | embedder: ${rt.embedder.name} | search: ${rt.mode} | answers: ${rt.llm?.name ?? 'passages only (no API key)'}`);
 });

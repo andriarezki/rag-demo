@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import type { Embedder } from './embed.js';
 import type { Llm } from './llm.js';
-import { ask } from './rag.js';
+import { ask, type SearchMode } from './rag.js';
 import type { VectorStore } from './store.js';
 
 const body = z.object({ question: z.string().trim().min(3).max(300) });
@@ -15,6 +15,7 @@ export interface AppDeps {
   llm: Llm | null;
   topK?: number;
   minScore?: number | undefined;
+  mode?: SearchMode;
   /** Requests per minute per IP on /api/ask. A public demo calls a paid API, so it is capped. */
   rateLimit?: number;
 }
@@ -44,6 +45,7 @@ export function createApp(deps: AppDeps) {
       chunks: deps.store.count(),
       embedder: deps.embedder.name,
       answerModel: deps.llm?.name ?? null,
+      search: deps.mode ?? 'hybrid',
     });
   });
 
@@ -54,7 +56,7 @@ export function createApp(deps: AppDeps) {
       return;
     }
     try {
-      res.json(await ask(parsed.data.question, deps.store, deps.embedder, deps.llm, { k: deps.topK ?? 4, minScore: deps.minScore }));
+      res.json(await ask(parsed.data.question, deps.store, deps.embedder, deps.llm, { k: deps.topK ?? 4, minScore: deps.minScore, mode: deps.mode }));
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'Could not answer right now.' });

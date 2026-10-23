@@ -16,7 +16,7 @@ const STOPWORDS = new Set(
   ).split(' '),
 );
 
-function tokenize(text: string): string[] {
+export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .normalize('NFKD')
