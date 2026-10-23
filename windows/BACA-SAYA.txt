@@ -1,5 +1,5 @@
-ASISTEN DOKUMEN (PILOT) - cara pakai
-=====================================
+PAGEWISE (nama kerja) - ASISTEN DOKUMEN, VERSI PILOT
+====================================================
 
 Apa ini
 -------
@@ -15,7 +15,7 @@ Yang dibutuhkan
 
 Langkah pertama (5 menit)
 -------------------------
-1. Salin seluruh folder ini ke PC, misalnya D:\Asisten-Dokumen.
+1. Salin seluruh folder ini ke PC, misalnya D:\Pagewise.
 2. Buka config.env dengan Notepad:
    - Ganti APP_PASSWORD dengan password Anda sendiri (aplikasi menolak jalan jika masih contoh).
    - Ganti DOCS_DIR dengan folder dokumen pilot, misalnya D:\Dokumen-Pilot.
