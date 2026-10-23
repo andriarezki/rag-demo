@@ -7,8 +7,8 @@ import { ingest } from './rag.js';
 mkdirSync(dirname(process.env.DB_FILE ?? 'data/rag.db'), { recursive: true });
 const rt = runtime();
 
-if (rt.auth?.password === 'GANTI-DENGAN-PASSWORD-ANDA') {
-  console.error('APP_PASSWORD di config.env masih contoh. Ganti dulu, lalu jalankan ulang. / APP_PASSWORD is still the placeholder; change it and start again.');
+if (rt.auth?.password === 'CHANGE-THIS-PASSWORD') {
+  console.error('APP_PASSWORD in config.env is still the placeholder. Change it, then start again.');
   process.exit(1);
 }
 

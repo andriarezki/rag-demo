@@ -40,7 +40,7 @@ export function createApp(deps: AppDeps) {
       const header = req.headers.authorization ?? '';
       const given = header.startsWith('Basic ') ? Buffer.from(header.slice(6), 'base64').toString('utf8') : '';
       if (timingSafeEqual(digest(given), expected)) return next();
-      res.set('WWW-Authenticate', 'Basic realm="Asisten dokumen"').status(401).send('Login diperlukan.');
+      res.set('WWW-Authenticate', 'Basic realm="Pagewise"').status(401).send('Login required.');
     });
   }
 
@@ -67,7 +67,7 @@ export function createApp(deps: AppDeps) {
       embedder: deps.embedder.name,
       answerModel: deps.llm?.name ?? null,
       search: deps.mode ?? 'hybrid',
-      name: deps.name ?? 'Tanya dokumen',
+      name: deps.name ?? 'Ask your documents',
       subtitle: deps.subtitle ?? '',
       examples: deps.examples ?? [],
     });

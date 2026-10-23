@@ -34,8 +34,8 @@ export function runtime(env: NodeJS.ProcessEnv = process.env): Runtime {
     auth: env.APP_USER && env.APP_PASSWORD ? { user: env.APP_USER, password: env.APP_PASSWORD } : undefined,
     logFile: env.LOG_QUESTIONS || undefined,
     examples: env.APP_EXAMPLES === undefined ? DEMO_EXAMPLES : env.APP_EXAMPLES.split('|').map((x) => x.trim()).filter(Boolean),
-    appName: env.APP_NAME || 'Tanya dokumen',
-    appSubtitle: env.APP_SUBTITLE || 'Jawaban diambil dari dokumen contoh (handbook perusahaan fiktif), lengkap dengan sumbernya.',
+    appName: env.APP_NAME || 'Ask your documents',
+    appSubtitle: env.APP_SUBTITLE || 'Answers come from the sample documents (a fictional company handbook), with their sources.',
     mode: (['hybrid', 'vector', 'keyword'] as const).find((m) => m === env.SEARCH_MODE) ?? 'hybrid',
   };
 }
