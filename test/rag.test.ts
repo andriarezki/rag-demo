@@ -311,6 +311,11 @@ describe('HTTP API', () => {
     expect(res.body.chunks).toBeGreaterThan(7);
   });
 
+  it('shows the deployment name and subtitle', async () => {
+    const a = createApp({ store: await indexed(), embedder, llm: null, name: 'Pagewise', subtitle: 'Tanya isi dokumen.', examples: ['Contoh?'] });
+    expect((await request(a).get('/api/info')).body).toMatchObject({ name: 'Pagewise', subtitle: 'Tanya isi dokumen.', examples: ['Contoh?'] });
+  });
+
   it('answers a question with sources', async () => {
     const res = await request(await app()).post('/api/ask').send({ question: 'Berapa lama saya harus melapor kalau laptop dicuri?' });
     expect(res.status).toBe(200);

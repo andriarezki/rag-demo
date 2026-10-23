@@ -21,6 +21,6 @@ if (rt.store.count() === 0 || rt.store.embedderName !== rt.embedder.name) {
 }
 
 const port = Number(process.env.PORT) || 3000;
-createApp({ store: rt.store, embedder: rt.embedder, llm: rt.llm, topK: rt.topK, minScore: rt.minScore, mode: rt.mode, auth: rt.auth, logFile: rt.logFile }).listen(port, () => {
-  console.log(`RAG demo on http://localhost:${port} | embedder: ${rt.embedder.name} | search: ${rt.mode} | answers: ${rt.llm?.name ?? 'passages only (no API key)'}${rt.auth ? ' | login required' : ''}`);
+createApp({ store: rt.store, embedder: rt.embedder, llm: rt.llm, topK: rt.topK, minScore: rt.minScore, mode: rt.mode, auth: rt.auth, logFile: rt.logFile, name: rt.appName, subtitle: rt.appSubtitle, examples: rt.examples }).listen(port, () => {
+  console.log(`${rt.appName} on http://localhost:${port} | embedder: ${rt.embedder.name} | search: ${rt.mode} | answers: ${rt.llm?.name ?? 'passages only (no API key)'}${rt.auth ? ' | login required' : ''}`);
 });

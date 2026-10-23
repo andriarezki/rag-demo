@@ -18,6 +18,9 @@ export interface AppDeps {
   topK?: number;
   minScore?: number | undefined;
   mode?: SearchMode;
+  name?: string;
+  subtitle?: string;
+  examples?: string[];
   /** Optional HTTP Basic login for the whole site, for a pilot on a shared network. */
   auth?: { user: string; password: string };
   /** Optional JSON-lines file where every question is recorded (time, IP, question, result, sources). */
@@ -64,6 +67,9 @@ export function createApp(deps: AppDeps) {
       embedder: deps.embedder.name,
       answerModel: deps.llm?.name ?? null,
       search: deps.mode ?? 'hybrid',
+      name: deps.name ?? 'Tanya dokumen',
+      subtitle: deps.subtitle ?? '',
+      examples: deps.examples ?? [],
     });
   });
 

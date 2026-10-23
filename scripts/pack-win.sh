@@ -1,12 +1,13 @@
 #!/bin/sh
 # Builds a Windows folder that runs with no install: Node.js (win-x64) + compiled app + launchers.
-# Needs internet to fetch Node.js. Output: dist-win/Asisten-Dokumen-Pilot-<version>-Win64.zip
+# Needs internet to fetch Node.js. Output: dist-win/<name>-<version>-Win64.zip (name from PACKAGE_NAME, default Pagewise-Pilot)
 set -eu
 cd "$(dirname "$0")/.."
 NODE_VERSION="${NODE_VERSION:-22.22.1}"
 VERSION=$(node -p "require('./package.json').version")
 OUT=dist-win
-STAGE="$OUT/Asisten-Dokumen-Pilot"
+NAME="${PACKAGE_NAME:-Pagewise-Pilot}"
+STAGE="$OUT/$NAME"
 CACHE="$OUT/cache"
 
 rm -rf "$STAGE" && mkdir -p "$STAGE/node" "$CACHE"
@@ -29,5 +30,5 @@ cp package.json package-lock.json "$STAGE/"
 for f in start.bat ingest.bat tanya.bat config.env BACA-SAYA.txt; do sed 's/$/\r/' "windows/$f" > "$STAGE/$f"; done
 cp LICENSE "$STAGE/LICENSE.txt"
 
-( cd "$OUT" && rm -f "Asisten-Dokumen-Pilot-$VERSION-Win64.zip" && python3 -m zipfile -c "Asisten-Dokumen-Pilot-$VERSION-Win64.zip" Asisten-Dokumen-Pilot )
-( cd "$OUT" && sha256sum "Asisten-Dokumen-Pilot-$VERSION-Win64.zip" )
+( cd "$OUT" && rm -f "$NAME-$VERSION-Win64.zip" && python3 -m zipfile -c "$NAME-$VERSION-Win64.zip" $NAME )
+( cd "$OUT" && sha256sum "$NAME-$VERSION-Win64.zip" )
