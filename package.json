@@ -18,12 +18,11 @@
     "node": ">=22"
   },
   "dependencies": {
-    "better-sqlite3": "^11.5.0",
     "express": "^4.21.0",
+    "pdfjs-dist": "^6.4.299",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11",
     "@types/express": "^4.17.21",
     "@types/node": "^22.7.0",
     "@types/supertest": "^6.0.2",

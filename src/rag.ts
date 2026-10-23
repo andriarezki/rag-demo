@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { chunkMarkdown, type Chunk } from './chunk.js';
+import { chunkMarkdown, chunkPage, type Chunk } from './chunk.js';
+import { extractPdfPages } from './pdf.js';
 import type { Embedder } from './embed.js';
 import type { Llm } from './llm.js';
 import { indexText, type Hit, type VectorStore } from './store.js';
@@ -9,6 +10,8 @@ export interface Source {
   n: number;
   doc: string;
   heading: string;
+  /** Page number for PDFs. */
+  page: number | null;
   text: string;
   /** Cosine similarity (meaning). */
   score: number;
@@ -32,17 +35,55 @@ export interface Answer {
 
 export const NOT_FOUND = 'Saya tidak menemukan jawabannya di dokumen yang tersedia.';
 
-export function loadDocs(dir: string): Chunk[] {
-  const files = readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
-  return files.flatMap((f) => chunkMarkdown(f, readFileSync(join(dir, f), 'utf8')));
+export interface IngestReport {
+  docs: number;
+  chunks: number;
+  /** Files that were read but contained no text (typically scanned PDFs that need OCR). */
+  empty: string[];
+  /** Files that could not be read, with the reason. */
+  failed: { file: string; error: string }[];
 }
 
-export async function ingest(dir: string, store: VectorStore, embedder: Embedder): Promise<{ docs: number; chunks: number }> {
-  const chunks = loadDocs(dir);
-  if (chunks.length === 0) throw new Error(`No .md files found in ${dir}`);
+/** Every .md, .txt and .pdf under `dir` (subfolders included), as paths relative to `dir` with forward slashes. */
+async function listDocs(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+  return entries
+    .filter((e) => e.isFile() && /\.(md|txt|pdf)$/i.test(e.name) && !e.name.startsWith('~$'))
+    .map((e) => join(e.parentPath, e.name).slice(dir.length).replace(/^[\\/]+/, '').replaceAll('\\', '/'))
+    .sort();
+}
+
+export async function loadDocs(dir: string): Promise<{ chunks: Chunk[]; empty: string[]; failed: IngestReport['failed'] }> {
+  const chunks: Chunk[] = [];
+  const empty: string[] = [];
+  const failed: IngestReport['failed'] = [];
+  for (const name of await listDocs(dir)) {
+    try {
+      const file = join(dir, name);
+      let found: Chunk[];
+      if (/\.pdf$/i.test(name)) {
+        const pages = await extractPdfPages(file);
+        found = pages.flatMap((text, i) => (text ? chunkPage(name, i + 1, text) : []));
+      } else {
+        const text = await readFile(file, 'utf8');
+        found = /\.txt$/i.test(name) ? chunkPage(name, 0, text).map(({ page: _page, ...c }) => ({ ...c, heading: name })) : chunkMarkdown(name, text);
+      }
+      if (found.length === 0) empty.push(name);
+      chunks.push(...found);
+    } catch (e) {
+      failed.push({ file: name, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  chunks.forEach((c, i) => (c.position = i));
+  return { chunks, empty, failed };
+}
+
+export async function ingest(dir: string, store: VectorStore, embedder: Embedder): Promise<IngestReport> {
+  const { chunks, empty, failed } = await loadDocs(dir);
+  if (chunks.length === 0) throw new Error(`No readable .md, .txt or .pdf text found in ${dir}${empty.length ? ` (${empty.length} file(s) had no text; scanned PDFs need OCR)` : ''}`);
   const vectors = await embedder.embed(chunks.map(indexText), 'document');
   store.replaceAll(chunks, vectors, embedder.name);
-  return { docs: new Set(chunks.map((c) => c.doc)).size, chunks: chunks.length };
+  return { docs: new Set(chunks.map((c) => c.doc)).size, chunks: chunks.length, empty, failed };
 }
 
 /**
@@ -106,7 +147,7 @@ export async function ask(
   const sources: Source[] = [];
   for (const h of hits) {
     const via = relevance(h, mode, minScore, opts.minCoverage);
-    if (via) sources.push({ n: sources.length + 1, doc: h.doc, heading: h.heading, text: h.text, score: Number(h.score.toFixed(3)), via });
+    if (via) sources.push({ n: sources.length + 1, doc: h.doc, heading: h.heading, page: h.page, text: h.text, score: Number(h.score.toFixed(3)), via });
   }
 
   // Layer 1: nothing close enough, so do not even call the model.

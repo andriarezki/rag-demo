@@ -65,7 +65,7 @@ $('f').addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error(d.error || 'Gagal');
     const label = { llm: 'Jawaban dari model', extractive: 'Passage paling relevan', refused: 'Tidak ada di dokumen' }[d.mode];
     $('out').innerHTML = `<div class="card"><span class="badge ${d.mode === 'refused' ? 'refused' : ''}">${label}</span><div class="answer">${esc(d.answer)}</div>` +
-      (d.sources.length ? `<h2>Sumber</h2>` + d.sources.map((s) => `<div class="src"><b>[${s.n}]</b> ${esc(s.doc)} › ${esc(s.heading)} <span class="meta">skor ${s.score} · lewat ${{ meaning: 'makna', keyword: 'kata kunci', both: 'makna + kata kunci' }[s.via]}</span><p>${esc(s.text)}</p></div>`).join('') : '') + '</div>';
+      (d.sources.length ? `<h2>Sumber</h2>` + d.sources.map((s) => `<div class="src"><b>[${s.n}]</b> ${esc(s.doc)}${s.page ? ' · halaman ' + s.page : ' › ' + esc(s.heading)} <span class="meta">skor ${s.score} · lewat ${{ meaning: 'makna', keyword: 'kata kunci', both: 'makna + kata kunci' }[s.via]}</span><p>${esc(s.text)}</p></div>`).join('') : '') + '</div>';
   } catch (err) {
     $('out').innerHTML = `<div class="card">${esc(err.message)}</div>`;
   } finally {

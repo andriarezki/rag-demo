@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
-import { readFileSync } from 'node:fs';
-import { chunkMarkdown } from '../src/chunk.js';
+import { mkdtempSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { chunkMarkdown, chunkPage } from '../src/chunk.js';
+import { extractPdfPages } from '../src/pdf.js';
 import { geminiEmbedder, hashEmbedder, pickEmbedder, type Embedder } from '../src/embed.js';
 import { claude, gemini, pickLlm, type Llm } from '../src/llm.js';
 import { ask, buildPrompt, ingest, NOT_FOUND, rank, relevance, retrieve } from '../src/rag.js';
@@ -139,7 +142,7 @@ describe('hybrid search', () => {
   });
 
   it('fuses two rankings by rank, not by raw score', () => {
-    const h = (id: number, score: number, bm25: number) => ({ id, doc: 'd', heading: 'h', text: 't', score, bm25, coverage: 0 });
+    const h = (id: number, score: number, bm25: number) => ({ id, doc: 'd', heading: 'h', page: null, text: 't', score, bm25, coverage: 0 });
     const hits = [h(1, 0.9, 0), h(2, 0.5, 9), h(3, 0.4, 1)];
     expect(rank(hits, 'vector').map((x) => x.id)).toEqual([1, 2, 3]);
     expect(rank(hits, 'keyword').map((x) => x.id)).toEqual([2, 3]);
@@ -147,7 +150,7 @@ describe('hybrid search', () => {
   });
 
   it('applies the on-topic guard per mode', () => {
-    const hit = { id: 1, doc: 'd', heading: 'h', text: 't', score: 0.05, bm25: 2, coverage: 0.9 };
+    const hit = { id: 1, doc: 'd', heading: 'h', page: null, text: 't', score: 0.05, bm25: 2, coverage: 0.9 };
     expect(relevance(hit, 'vector', 0.12)).toBeNull();
     expect(relevance(hit, 'keyword', 0.12)).toBe('keyword');
     expect(relevance(hit, 'hybrid', 0.12)).toBe('keyword');
@@ -160,6 +163,57 @@ describe('hybrid search', () => {
     const a = await ask('ekstensi 100', store, embedder, null);
     expect(a.sources[0]!.doc).toBe('03-laptop-dan-perangkat.md');
     expect(['keyword', 'both']).toContain(a.sources[0]!.via);
+  });
+});
+
+describe('PDF and text files', () => {
+  const pdf = 'test/fixtures/handbook.pdf';
+
+  function docsDir() {
+    const dir = mkdtempSync(join(tmpdir(), 'rag-docs-'));
+    mkdirSync(join(dir, 'jurnal'));
+    copyFileSync(pdf, join(dir, 'jurnal', 'handbook.pdf'));
+    writeFileSync(join(dir, 'catatan.txt'), 'Rapat mingguan diadakan setiap hari Selasa pukul 10.00 di ruang utama.');
+    return dir;
+  }
+
+  it('extracts the text of each page in order', async () => {
+    const pages = await extractPdfPages(pdf);
+    expect(pages).toHaveLength(2);
+    expect(pages[0]).toContain('12 hari cuti');
+    expect(pages[1]).toContain('laptop hilang');
+  });
+
+  it('chunks a page and labels it with the page number', () => {
+    const chunks = chunkPage('a.pdf', 3, 'Kalimat pertama. '.repeat(100), 300, 50);
+    expect(chunks.length).toBeGreaterThan(2);
+    expect(chunks.every((c) => c.page === 3 && c.heading === 'halaman 3')).toBe(true);
+  });
+
+  it('indexes PDFs in subfolders and cites the right page', async () => {
+    const store = new VectorStore(':memory:');
+    const report = await ingest(docsDir(), store, embedder);
+    expect(report).toMatchObject({ docs: 2, empty: [], failed: [] });
+    const a = await ask('Jika laptop dicuri lapor berapa jam?', store, embedder, null);
+    expect(a.sources[0]).toMatchObject({ doc: 'jurnal/handbook.pdf', page: 2 });
+    const b = await ask('Berapa hari cuti tahunan?', store, embedder, null);
+    expect(b.sources[0]).toMatchObject({ doc: 'jurnal/handbook.pdf', page: 1 });
+    const c = await ask('Kapan rapat mingguan diadakan?', store, embedder, null);
+    expect(c.sources[0]!.doc).toBe('catatan.txt');
+  });
+
+  it('reports unreadable files instead of stopping the whole ingest', async () => {
+    const dir = docsDir();
+    writeFileSync(join(dir, 'rusak.pdf'), 'ini bukan pdf');
+    const report = await ingest(dir, new VectorStore(':memory:'), embedder);
+    expect(report.docs).toBe(2);
+    expect(report.failed.map((f) => f.file)).toEqual(['rusak.pdf']);
+  });
+
+  it('says so when nothing readable is found', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rag-empty-'));
+    writeFileSync(join(dir, 'kosong.txt'), '   ');
+    await expect(ingest(dir, new VectorStore(':memory:'), embedder)).rejects.toThrow(/No readable/);
   });
 });
 
@@ -193,7 +247,7 @@ describe('ask', () => {
   });
 
   it('labels passages and marks them as data in the prompt', () => {
-    const p = buildPrompt('q?', [{ n: 1, doc: 'a.md', heading: 'H', text: 'isi', score: 0.9, via: 'meaning' }]);
+    const p = buildPrompt('q?', [{ n: 1, doc: 'a.md', heading: 'H', page: null, text: 'isi', score: 0.9, via: 'meaning' }]);
     expect(p).toBe('Passages:\n\n[1] (a.md > H)\nisi\n\nQuestion: q?');
   });
 });
@@ -275,5 +329,25 @@ describe('HTTP API', () => {
     expect((await request(a).post('/api/ask').send(q)).status).toBe(200);
     expect((await request(a).post('/api/ask').send(q)).status).toBe(200);
     expect((await request(a).post('/api/ask').send(q)).status).toBe(429);
+  });
+});
+
+describe('pilot options: login and question log', () => {
+  it('asks for a login when credentials are configured', async () => {
+    const app = createApp({ store: await indexed(), embedder, llm: null, auth: { user: 'peneliti', password: 'rahasia-123' } });
+    expect((await request(app).get('/api/info')).status).toBe(401);
+    expect((await request(app).get('/api/info').auth('peneliti', 'salah')).status).toBe(401);
+    expect((await request(app).get('/api/info').auth('peneliti', 'rahasia-123')).status).toBe(200);
+    expect((await request(app).post('/api/ask').send({ question: 'Berapa hari cuti?' })).status).toBe(401);
+  });
+
+  it('records each question as a JSON line when a log file is set', async () => {
+    const logFile = join(mkdtempSync(join(tmpdir(), 'rag-log-')), 'logs', 'questions.log');
+    const app = createApp({ store: await indexed(), embedder, llm: null, logFile });
+    await request(app).post('/api/ask').send({ question: 'Berapa hari cuti tahunan untuk karyawan tetap?' });
+    const lines = readFileSync(logFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ q: 'Berapa hari cuti tahunan untuk karyawan tetap?', mode: 'extractive' });
+    expect(lines[0].sources[0].doc).toBe('04-cuti-dan-izin.md');
   });
 });

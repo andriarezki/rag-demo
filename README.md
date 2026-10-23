@@ -86,6 +86,13 @@ Set `SEARCH_MODE=vector` or `SEARCH_MODE=keyword` to use one search only (defaul
 
 Use your own documents: put `.md` files in a folder and run `DOCS_DIR=path/to/folder npm run ingest`. See `.env.example` for every setting.
 
+## Your own documents, on a shared network
+
+- Put `.md`, `.txt` or `.pdf` files (subfolders are fine) in a folder and run `DOCS_DIR=path/to/folder npm run ingest`. Answers cite the file and, for PDFs, the page.
+- `APP_USER` and `APP_PASSWORD` protect the whole site with HTTP Basic login. `LOG_QUESTIONS=data/questions.log` records every question as a JSON line (time, IP, question, result, sources), useful for evaluating a pilot. Both are off by default.
+- **Windows without installing anything:** `scripts/pack-win.sh` builds a folder with Node.js, the app and `start.bat` / `ingest.bat` launchers, with instructions in Indonesian (`windows/BACA-SAYA.txt`). The app uses only pure-JavaScript dependencies and Node's built-in SQLite, so nothing native has to be compiled. The Windows package has been smoke-tested on Linux only, not on a real Windows machine.
+- Offline mode matches words, not meaning. On a real 15-page paper it surfaced the right pages among its top results but not always first. For serious use set `GEMINI_API_KEY` (passages are then sent to Google at question time) or plug in a local embedding model.
+
 ## Measuring it
 
 `npm run eval` runs `eval/questions.json` (16 questions with a known source document, including 4 short keyword-style ones such as `ekstensi 100`, and 4 questions the documents cannot answer) once per search mode and prints:
@@ -112,16 +119,16 @@ How to read this honestly:
 ## Tests
 
 ```bash
-npm test          # 30 tests
+npm test          # 37 tests
 npm run typecheck
 ```
 
-They cover chunking, the embedder, BM25 and rank fusion, retrieval accuracy and refusals on the sample set, the prompt that is sent to the model, the HTTP API (validation and rate limit) and the Gemini and Claude request formats. The provider calls are **mocked**, so no key or network is needed, and the real APIs were not called while building this.
+They cover chunking, PDF and text ingestion with page numbers, the embedder, BM25 and rank fusion, retrieval accuracy and refusals on the sample set, the prompt that is sent to the model, the HTTP API (validation, rate limit, optional login and question log) and the Gemini and Claude request formats. The provider calls are **mocked**, so no key or network is needed, and the real APIs were not called while building this.
 
 ## Limits and next steps
 
 - Brute-force search is exact but scans every vector. Past tens of thousands of chunks, move the store to pgvector, Qdrant or sqlite-vec (only `src/store.ts` changes).
-- Only `.md` files. PDFs and web pages need an extraction step before chunking.
+- Reads `.md`, `.txt` and `.pdf` (subfolders included, page numbers kept for PDFs). Scanned PDFs have no text layer and are reported as skipped; they need OCR first. Web pages are not handled.
 - Hybrid search fuses by rank only. A cross-encoder reranker on the top 20 would improve the final order further.
 - No reranking and no conversation memory: each question stands alone.
 - The sample company and its policies are fictional.
@@ -132,8 +139,9 @@ They cover chunking, the embedder, BM25 and rank fusion, retrieval accuracy and 
 ```
 src/chunk.ts    split markdown into chunks
 src/embed.ts    hash embedder + Gemini embeddings
+src/pdf.ts      text of each PDF page (pdf.js)
 src/bm25.ts     keyword search (BM25) and keyword coverage
-src/store.ts    SQLite store: vectors, cosine + BM25 scores
+src/store.ts    SQLite (node:sqlite) store: vectors, cosine + BM25 scores
 src/llm.ts      Claude and Gemini adapters (plain fetch, no SDK)
 src/rag.ts      ingest, hybrid ranking (RRF), guard, prompt, answer
 src/app.ts      Express API
