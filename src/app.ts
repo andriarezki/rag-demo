@@ -1,0 +1,66 @@
+import express from 'express';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { z } from 'zod';
+import type { Embedder } from './embed.js';
+import type { Llm } from './llm.js';
+import { ask } from './rag.js';
+import type { VectorStore } from './store.js';
+
+const body = z.object({ question: z.string().trim().min(3).max(300) });
+
+export interface AppDeps {
+  store: VectorStore;
+  embedder: Embedder;
+  llm: Llm | null;
+  topK?: number;
+  minScore?: number | undefined;
+  /** Requests per minute per IP on /api/ask. A public demo calls a paid API, so it is capped. */
+  rateLimit?: number;
+}
+
+export function createApp(deps: AppDeps) {
+  const app = express();
+  app.disable('x-powered-by');
+  app.use(express.json({ limit: '4kb' }));
+
+  const hits = new Map<string, { n: number; reset: number }>();
+  const limit = deps.rateLimit ?? 20;
+  const limiter: express.RequestHandler = (req, res, next) => {
+    const now = Date.now();
+    const key = req.ip ?? 'unknown';
+    const cur = hits.get(key);
+    if (!cur || cur.reset < now) hits.set(key, { n: 1, reset: now + 60_000 });
+    else if (++cur.n > limit) {
+      res.status(429).json({ error: 'Too many questions. Try again in a minute.' });
+      return;
+    }
+    next();
+  };
+
+  app.get('/api/info', (_req, res) => {
+    res.json({
+      documents: deps.store.docCount(),
+      chunks: deps.store.count(),
+      embedder: deps.embedder.name,
+      answerModel: deps.llm?.name ?? null,
+    });
+  });
+
+  app.post('/api/ask', limiter, async (req, res) => {
+    const parsed = body.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Send {"question": "..."} with 3 to 300 characters.' });
+      return;
+    }
+    try {
+      res.json(await ask(parsed.data.question, deps.store, deps.embedder, deps.llm, { k: deps.topK ?? 4, minScore: deps.minScore }));
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Could not answer right now.' });
+    }
+  });
+
+  app.use(express.static(join(dirname(fileURLToPath(import.meta.url)), '..', 'public')));
+  return app;
+}
