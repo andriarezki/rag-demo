@@ -56,7 +56,7 @@ describe('hash embedder', () => {
   });
 
   it('scores a text higher against itself than against an unrelated one', async () => {
-    const [q, same, other] = await embedder.embed(['reset password email', 'cara reset password email kantor', 'jadwal cuti tahunan'], 'document');
+    const [q, same, other] = await embedder.embed(['reset password email', 'cara reset password email perusahaan', 'jadwal cuti tahunan'], 'document');
     const dot = (x: number[], y: number[]) => x.reduce((s, v, i) => s + v * y[i]!, 0);
     expect(dot(q!, same!)).toBeGreaterThan(dot(q!, other!));
   });

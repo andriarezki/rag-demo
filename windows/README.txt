@@ -39,7 +39,7 @@ Offline mode and AI mode
   No data leaves the PC.
 - AI mode (GEMINI_API_KEY filled in): better search by meaning, and a short written answer with citations [1] [2].
   CONSEQUENCE: the relevant passages are sent to a Google service for every question, and the PC needs internet access.
-  Use it only for non-confidential documents and only after approval from your manager and the head-office IT team.
+  Use it only for non-confidential documents and only after approval from your manager and your organization's IT/security team.
   After adding or changing the key, run ingest.bat again (the index is built differently).
 
 Limits to know about
@@ -54,7 +54,7 @@ Notes and security
 - Every question is logged in data\questions.log (time, IP, question, result, sources) for the pilot evaluation.
   Empty the LOG_QUESTIONS line in config.env to turn logging off, and tell the users.
 - Keep this port on the LAN only. Do not forward it to the internet.
-- Register the system with the head-office IT team (PC location, owner, data used, who may access it) before use.
+- Register the system with your organization's IT team (PC location, owner, data used, who may access it) before use.
 - To stop: close the start.bat window.
 
 Common problems

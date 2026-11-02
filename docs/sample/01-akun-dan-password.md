@@ -8,11 +8,11 @@ Password minimal 12 karakter dan harus berisi huruf besar, huruf kecil, angka, d
 
 ## Lupa password
 
-Jika lupa password, buka halaman akun.contoh.id lalu pilih "Lupa password". Tautan reset dikirim ke email kantor dan berlaku selama 30 menit. Jika email kantor juga tidak bisa dibuka, hubungi tim IT lewat kanal Slack #bantuan-it. Tim IT tidak pernah meminta password lewat chat atau telepon.
+Jika lupa password, buka halaman akun.contoh.id lalu pilih "Lupa password". Tautan reset dikirim ke email perusahaan dan berlaku selama 30 menit. Jika email perusahaan juga tidak bisa dibuka, hubungi tim IT lewat kanal Slack #bantuan-it. Tim IT tidak pernah meminta password lewat chat atau telepon.
 
 ## Verifikasi dua langkah
 
-Verifikasi dua langkah (2FA) wajib untuk email, VPN, dan aplikasi keuangan. Gunakan aplikasi autentikator di ponsel. Simpan kode cadangan di tempat aman, bukan di laptop kantor. Jika ponsel hilang, segera lapor ke tim IT agar 2FA lama dicabut.
+Verifikasi dua langkah (2FA) wajib untuk email, VPN, dan aplikasi keuangan. Gunakan aplikasi autentikator di ponsel. Simpan kode cadangan di tempat aman, bukan di laptop perusahaan. Jika ponsel hilang, segera lapor ke tim IT agar 2FA lama dicabut.
 
 ## Akun yang terkunci
 
